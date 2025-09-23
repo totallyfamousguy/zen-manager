@@ -28,12 +28,14 @@ With one script, you can install Zen for the first time, update to the latest re
 
 ## ⚙️ Installation
 
-Clone this repository and make the script executable:  
+Download the latest release from GitHub, make it executable, and run it:
 
 ```bash
-git clone https://github.com/totallyfamousguy/zen-manager.git
-cd zen-manager
-chmod +x zen-manager.sh
+# Download the latest release script from GitHub
+curl -LO https://github.com/totallyfamousguy/zen-manager/releases/latest/download/zenmanager.sh
+
+# Make it executable
+chmod +x zenmanager.sh
 ```
 
 ---
