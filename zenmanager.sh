@@ -1,8 +1,42 @@
 #!/usr/bin/env bash
+# ==========================================================
+# Zen Manager
+# Made by totallyfamousguy
+# GitHub: https://github.com/totallyfamousguy/zen-manager
+# ==========================================================
+
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="2.0.0"
 PKGNAME="zen-browser"
+CUSTOM_TAG=""
+
+check_script_update() {
+  local latest_script
+  latest_script=$(curl -sS "https://api.github.com/repos/totallyfamousguy/zen-manager/releases/latest" \
+    | grep -m1 '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' || true)
+
+  local latest_clean="${latest_script#v}"
+  local current_clean="${SCRIPT_VERSION#v}"
+
+  if [ -n "$latest_clean" ] && [ "$latest_clean" != "$current_clean" ]; then
+    echo "⬆️  A new version of Zen Manager is available: v$latest_clean (current: v$current_clean)"
+    echo "👉 Download it here: https://github.com/totallyfamousguy/zen-manager/releases/latest"
+    read -p "Do you want to continue with this old version now? (y/n) " ans
+    if [ "${ans,,}" = "n" ]; then
+      echo "ℹ️  Exiting the script, you can download and run the new version."
+      exit 0
+    else
+      echo -e "\e[31m⚠️  You are running an outdated version of Zen Manager which may have bugs.\e[0m"
+      read -p "Are you sure you want to continue with this old version? (y/n) " confirm
+      if [ "${confirm,,}" != "y" ]; then
+        echo "ℹ️  Exiting. Please download the latest version."
+        exit 0
+      fi
+    fi
+  fi
+}
+check_script_update
 
 AUTO_YES=0
 KEEP_FILES=0
@@ -15,16 +49,21 @@ for arg in "$@"; do
 Usage: sudo $0 [options]
 
 Options:
-  --help       Show this help and exit
-  --yes        Automatically answer yes to all prompts
-  --keep       Keep .deb and tarball after run
-  --debug      Show dpkg-deb build output
-  --version    Show script version"
+  --help          Show this help and exit
+  --yes           Automatically answer yes to all prompts
+  --keep          Keep .deb and tarball after run
+  --debug         Show dpkg-deb build output
+  --version       Show script version
+  --version-tag X Install a specific Zen Browser version"
       exit 0 ;;
     --yes) AUTO_YES=1 ;;
     --keep) KEEP_FILES=1 ;;
     --debug) DEBUG_MODE=1 ;;
     --version) echo "Zen Manager script version $SCRIPT_VERSION"; exit 0 ;;
+    --version-tag)
+      shift
+      CUSTOM_TAG="$1"
+      ;;
   esac
 done
 
@@ -160,6 +199,10 @@ installed_version() {
 INST_VER="$(installed_version)"
 LATEST_TAG="$(get_latest_version || true)"
 
+if [ -n "$CUSTOM_TAG" ]; then
+  LATEST_TAG="$CUSTOM_TAG"
+fi
+
 if [ -n "$INST_VER" ] && [ -n "$LATEST_TAG" ] && [ "$INST_VER" = "$LATEST_TAG" ]; then
   echo "✅ Zen is up to date (installed: $INST_VER)"
 elif [ -n "$INST_VER" ] && [ -n "$LATEST_TAG" ]; then
@@ -170,7 +213,7 @@ elif [ -n "$INST_VER" ] && [ -n "$LATEST_TAG" ]; then
     if [ $AUTO_YES -eq 1 ]; then inst="y"; else read -p "🚀 Install Zen now? (y/n) " inst; fi
     if [ "${inst,,}" = "y" ]; then
       echo "ℹ️  Installing $DEBFILE ..." >&2
-      apt install ./"$DEBFILE"
+      dpkg -i "./$DEBFILE" && apt-get install -f -y
       echo "✅ Installed $DEBFILE"
     else
       echo "✅ Update package ready: $DEBFILE"
@@ -183,15 +226,13 @@ elif [ -n "$INST_VER" ] && [ -n "$LATEST_TAG" ]; then
     echo "❌ Update skipped."
   fi
 elif [ -z "$INST_VER" ]; then
-  if [ $AUTO_YES -eq 1 ]; then doinstall="y"; else read -p "📦 Zen is not installed. Install it now? (y/n) " doinstall; fi
-  if [ "${doinstall,,}" = "y" ]; then
-    [ -z "$LATEST_TAG" ] && { echo "❌ Cannot detect latest tag; supply a version." >&2; exit 1; }
+  if [ -n "$CUSTOM_TAG" ]; then
     TARPATH="$(download_tarball "$LATEST_TAG")"
     DEBFILE="$(build_deb "$TARPATH")"
     if [ $AUTO_YES -eq 1 ]; then inst="y"; else read -p "🚀 Install Zen now? (y/n) " inst; fi
     if [ "${inst,,}" = "y" ]; then
       echo "ℹ️  Installing $DEBFILE ..." >&2
-      apt install ./"$DEBFILE"
+      dpkg -i "./$DEBFILE" && apt-get install -f -y
       echo "✅ Installed $DEBFILE"
     else
       echo "✅ Package ready: $DEBFILE"
@@ -201,7 +242,26 @@ elif [ -z "$INST_VER" ]; then
       [ "${clean,,}" = "y" ] && rm -f "$TARPATH" "$DEBFILE"
     fi
   else
-    echo "❌ Installation cancelled."
+    if [ $AUTO_YES -eq 1 ]; then doinstall="y"; else read -p "📦 Zen is not installed. Install it now? (y/n) " doinstall; fi
+    if [ "${doinstall,,}" = "y" ]; then
+      [ -z "$LATEST_TAG" ] && { echo "❌ Cannot detect latest tag; supply a version." >&2; exit 1; }
+      TARPATH="$(download_tarball "$LATEST_TAG")"
+      DEBFILE="$(build_deb "$TARPATH")"
+      if [ $AUTO_YES -eq 1 ]; then inst="y"; else read -p "🚀 Install Zen now? (y/n) " inst; fi
+      if [ "${inst,,}" = "y" ]; then
+        echo "ℹ️  Installing $DEBFILE ..." >&2
+        dpkg -i "./$DEBFILE" && apt-get install -f -y
+        echo "✅ Installed $DEBFILE"
+      else
+        echo "✅ Package ready: $DEBFILE"
+      fi
+      if [ $KEEP_FILES -eq 0 ]; then
+        read -p "🧹 Remove $(basename "$TARPATH") and $(basename "$DEBFILE")? (y/n) " clean
+        [ "${clean,,}" = "y" ] && rm -f "$TARPATH" "$DEBFILE"
+      fi
+    else
+      echo "❌ Installation cancelled."
+    fi
   fi
 else
   echo "⚠️  Could not determine state. Installed: $INST_VER, Latest: $LATEST_TAG"
