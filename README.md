@@ -28,12 +28,14 @@ With one script, you can install Zen for the first time, update to the latest re
 
 ## ⚙️ Installation
 
-Clone this repository and make the script executable:  
+Download the latest release from GitHub, make it executable, and run it:
 
 ```bash
-git clone https://github.com/totallyfamousguy/zen-manager.git
-cd zen-manager
-chmod +x zen-manager.sh
+# Download the latest release script from GitHub
+curl -LO https://github.com/totallyfamousguy/zen-manager/releases/latest/download/zenmanager.sh
+
+# Make it executable
+chmod +x zenmanager.sh
 ```
 
 ---
@@ -43,7 +45,7 @@ chmod +x zen-manager.sh
 Run the script with `sudo`:  
 
 ```bash
-sudo ./zen-manager.sh
+sudo ./zenmanager.sh
 ```
 
 ### Example runs:
@@ -51,43 +53,43 @@ sudo ./zen-manager.sh
 - **Install or update Zen (interactive mode):**
 
 ```bash
-sudo ./zen-manager.sh
+sudo ./zenmanager.sh
 ```
 
 - **Auto-install/update without prompts:**
 
 ```bash
-sudo ./zen-manager.sh --yes
+sudo ./zenmanager.sh --yes
 ```
 
 - **Install but keep `.deb` and tarball files:**
 
 ```bash
-sudo ./zen-manager.sh --keep
+sudo ./zenmanager.sh --keep
 ```
 
 - **Build with full logs for debugging:**
 
 ```bash
-sudo ./zen-manager.sh --debug
+sudo ./zenmanager.sh --debug
 ```
 
 - **Install a specific version (instead of latest):**
 
 ```bash
-sudo ./zen-manager.sh --version-tag 1.15b
+sudo ./zenmanager.sh --version-tag 1.15b
 ```
 
 - **Show script version:**
 
 ```bash
-./zen-manager.sh --version
+./zenmanager.sh --version
 ```
 
 - **Show help menu:**
 
 ```bash
-./zen-manager.sh --help
+./zenmanager.sh --help
 ```
 
 ---
@@ -126,3 +128,4 @@ sudo ./zen-manager.sh --version-tag 1.15b
 ## 📄 License
 
 MIT License – free to use, modify, and share.  
+
