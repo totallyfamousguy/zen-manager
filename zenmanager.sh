@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-SCRIPT_VERSION="2.0.0"
+SCRIPT_VERSION="2.0.1"
 PKGNAME="zen-browser"
 CUSTOM_TAG=""
 
@@ -175,12 +175,16 @@ Description: Zen Browser
  A Firefox-based browser (Zen).
 EOF
 
-  local debfile="${PKGNAME}_${detected_version}_${DEB_ARCH}.deb"
+    local debfile="${PKGNAME}_${detected_version}_${DEB_ARCH}.deb"
+
   if [ $DEBUG_MODE -eq 1 ]; then
-    dpkg-deb --build --root-owner-group "$workdir" "$debfile"
+    set -x
+    dpkg-deb --build --root-owner-group --verbose "$workdir" "$debfile"
+    set +x
   else
     dpkg-deb --build --root-owner-group "$workdir" "$debfile" >/dev/null 2>&1
   fi
+
   [ ! -f "$debfile" ] && { echo "❌ Failed to build $debfile" >&2; return 1; }
 
   echo "✅ Successfully built $debfile" >&2
