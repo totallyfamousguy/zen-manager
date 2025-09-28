@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-SCRIPT_VERSION="2.0.1"
+SCRIPT_VERSION="2.2.0"
 PKGNAME="zen-browser"
 CUSTOM_TAG=""
 
@@ -175,7 +175,7 @@ Description: Zen Browser
  A Firefox-based browser (Zen).
 EOF
 
-    local debfile="${PKGNAME}_${detected_version}_${DEB_ARCH}.deb"
+  local debfile="${PKGNAME}_${detected_version}_${DEB_ARCH}.deb"
 
   if [ $DEBUG_MODE -eq 1 ]; then
     set -x
@@ -200,6 +200,49 @@ installed_version() {
   fi
 }
 
+# ---------------- NEW FUNCTION ----------------
+setup_auto_updater() {
+  echo "⚡ Would you like to install the Zen Auto-Updater?"
+  read -p "(y/n) " choice
+  if [ "${choice,,}" = "y" ]; then
+    local updater_path="/opt/zen/zenupdatecheck.sh"
+    local desktop_file="/usr/share/applications/zen.desktop"
+
+    echo "⬇️  Downloading Zen Auto-Updater..."
+    curl -sS -L -o "$updater_path" "https://raw.githubusercontent.com/totallyfamousguy/zen-manager/refs/heads/main/zenupdatecheck.sh"
+    chmod +x "$updater_path"
+
+    # resolve absolute path of this script robustly
+    local script_abs=""
+    if command -v realpath >/dev/null 2>&1; then
+      script_abs="$(realpath "$0")"
+    elif command -v readlink >/dev/null 2>&1; then
+      script_abs="$(readlink -f "$0")"
+    else
+      case "$0" in
+        /*) script_abs="$0" ;;
+        *) script_abs="$(pwd)/$0" ;;
+      esac
+    fi
+
+    # replace MAIN_SCRIPT line in updater
+    sed -i "s|^MAIN_SCRIPT=.*|MAIN_SCRIPT=\"$script_abs\"|" "$updater_path"
+
+    if [ -f "$desktop_file" ]; then
+      sed -i 's|^Exec=.*|Exec=sh -c "/opt/zen/zenupdatecheck.sh & exec zen %u"|' "$desktop_file"
+    fi
+
+    echo "✅ Zen Auto-Updater installed successfully."
+  else
+    echo -e "\e[31m⚠️ Without the auto-updater, you will need to run zenmanager.sh manually for updates.\e[0m"
+    read -p "Are you sure you don’t want to install the auto-updater? (y/n) " confirm
+    if [ "${confirm,,}" != "y" ]; then
+      setup_auto_updater
+    fi
+  fi
+}
+# -----------------------------------------------
+
 INST_VER="$(installed_version)"
 LATEST_TAG="$(get_latest_version || true)"
 
@@ -219,6 +262,7 @@ elif [ -n "$INST_VER" ] && [ -n "$LATEST_TAG" ]; then
       echo "ℹ️  Installing $DEBFILE ..." >&2
       dpkg -i "./$DEBFILE" && apt-get install -f -y
       echo "✅ Installed $DEBFILE"
+      setup_auto_updater
     else
       echo "✅ Update package ready: $DEBFILE"
     fi
@@ -238,6 +282,7 @@ elif [ -z "$INST_VER" ]; then
       echo "ℹ️  Installing $DEBFILE ..." >&2
       dpkg -i "./$DEBFILE" && apt-get install -f -y
       echo "✅ Installed $DEBFILE"
+      setup_auto_updater
     else
       echo "✅ Package ready: $DEBFILE"
     fi
@@ -256,6 +301,7 @@ elif [ -z "$INST_VER" ]; then
         echo "ℹ️  Installing $DEBFILE ..." >&2
         dpkg -i "./$DEBFILE" && apt-get install -f -y
         echo "✅ Installed $DEBFILE"
+        setup_auto_updater
       else
         echo "✅ Package ready: $DEBFILE"
       fi
